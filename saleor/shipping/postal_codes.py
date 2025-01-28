@@ -96,21 +96,26 @@ def check_shipping_method_for_postal_code(customer_shipping_address, method):
 def is_shipping_method_applicable_for_postal_code(
     customer_shipping_address, method
 ) -> bool:
-    """Return if shipping method is applicable with the postal code rules."""
-    results = check_shipping_method_for_postal_code(customer_shipping_address, method)
-    if not results:
+    """Return if a shipping method is applicable given postal code rules."""
+    postal_code_rules = check_shipping_method_for_postal_code(
+        customer_shipping_address, method
+    )
+    if not postal_code_rules:
+        # If no rules are found, default to applicable
         return True
-    if all(
-        rule.inclusion_type == PostalCodeRuleInclusionType.INCLUDE
-        for rule in results.keys()
-    ):
-        return any(results.values())
-    if all(
-        rule.inclusion_type == PostalCodeRuleInclusionType.EXCLUDE
-        for rule in results.keys()
-    ):
-        return not any(results.values())
-    # Shipping methods with complex rules are not supported for now
+
+    # Gather all inclusion types present in the returned rules
+    inclusion_types = {rule.inclusion_type for rule in postal_code_rules.keys()}
+
+    # If all rules are 'INCLUDE', return whether any of them matched
+    if inclusion_types == {PostalCodeRuleInclusionType.INCLUDE}:
+        return any(postal_code_rules.values())
+
+    # If all rules are 'EXCLUDE', return whether none of them matched
+    if inclusion_types == {PostalCodeRuleInclusionType.EXCLUDE}:
+        return not any(postal_code_rules.values())
+
+    # Shipping methods with mixed/complex rules aren't supported currently
     return False
 
 
